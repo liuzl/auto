@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>背影 - 交互式文学游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'KaiTi', 'STKaiti', '楷体', serif;
+            background: linear-gradient(135deg, #3e2723 0%, #5d4037 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .game-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .game-header {
+            text-align: center;
+            padding: 30px 20px;
+            background: rgba(255, 248, 230, 0.95);
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 3px solid #8d6e63;
+        }
+
+        .game-title {
+            font-size: 48px;
+            color: #3e2723;
+            margin-bottom: 10px;
+            letter-spacing: 8px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .game-subtitle {
+            font-size: 18px;
+            color: #6d4c41;
+            letter-spacing: 3px;
+        }
+
+        .score-display {
+            position: absolute;
+            top: 30px;
+            right: 40px;
+            background: rgba(141, 110, 99, 0.9);
+            color: #fff8e1;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 20px;
+            font-weight: bold;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+            letter-spacing: 2px;
+        }
+
+        .scene-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .scene-image-wrapper {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+            border: 4px solid #8d6e63;
+        }
+
+        .scene-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .scene-image:hover {
+            transform: scale(1.02);
+        }
+
+        .scene-number {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(62, 39, 35, 0.9);
+            color: #fff8e1;
+            padding: 10px 25px;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+
+        .scene-content {
+            background: rgba(255, 248, 230, 0.98);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 3px solid #8d6e63;
+        }
+
+        .scene-text {
+            font-size: 22px;
+            line-height: 2;
+            color: #3e2723;
+            margin-bottom: 35px;
+            text-indent: 2em;
+            letter-spacing: 1px;
+        }
+
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .option-button {
+            background: linear-gradient(135deg, #d7ccc8 0%, #bcaaa4 100%);
+            border: 3px solid #8d6e63;
+            padding: 20px 30px;
+            border-radius: 12px;
+            font-size: 20px;
+            color: #3e2723;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+            font-family: 'KaiTi', 'STKaiti', '楷体', serif;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .option-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(135deg, #efebe9 0%, #d7ccc8 100%);
+        }
+
+        .option-button:hover::before {
+            left: 100%;
+        }
+
+        .option-button:active {
+            transform: translateY(0);
+        }
+
+        .option-button.correct {
+            background: linear-gradient(135deg, #c8e6c9 0%, #a5d6a7 100%);
+            border-color: #4caf50;
+            animation: correctPulse 0.5s ease;
+        }
+
+        .option-button.incorrect {
+            background: linear-gradient(135deg, #ffcdd2 0%, #ef9a9a 100%);
+            border-color: #f44336;
+            animation: incorrectShake 0.5s ease;
+        }
+
+        @keyframes correctPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+        }
+
+        @keyframes incorrectShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .feedback-container {
+            margin-top: 30px;
+            padding: 30px;
+            border-radius: 12px;
+            font-size: 19px;
+            line-height: 1.9;
+            color: #3e2723;
+            letter-spacing: 0.5px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .feedback-container.correct {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            border: 3px solid #4caf50;
+        }
+
+        .feedback-container.incorrect {
+            background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+            border: 3px solid #f44336;
+        }
+
+        .next-button {
+            margin-top: 30px;
+            padding: 18px 50px;
+            background: linear-gradient(135deg, #8d6e63 0%, #6d4c41 100%);
+            color: #fff8e1;
+            border: none;
+            border-radius: 50px;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'KaiTi', 'STKaiti', '楷体', serif;
+            letter-spacing: 3px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .next-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            background: linear-gradient(135deg, #a1887f 0%, #8d6e63 100%);
+        }
+
+        .next-button:active {
+            transform: translateY(0);
+        }
+
+        .game-end {
+            text-align: center;
+            padding: 60px 40px;
+            background: rgba(255, 248, 230, 0.98);
+            border-radius: 15px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+            border: 4px solid #8d6e63;
+        }
+
+        .game-end h2 {
+            font-size: 42px;
+            color: #3e2723;
+            margin-bottom: 30px;
+            letter-spacing: 5px;
+        }
+
+        .final-score {
+            font-size: 36px;
+            color: #6d4c41;
+            margin-bottom: 25px;
+            letter-spacing: 3px;
+        }
+
+        .game-end-message {
+            font-size: 22px;
+            line-height: 2;
+            color: #5d4037;
+            margin-bottom: 40px;
+            letter-spacing: 1px;
+        }
+
+        .restart-button {
+            padding: 20px 60px;
+            background: linear-gradient(135deg, #8d6e63 0%, #6d4c41 100%);
+            color: #fff8e1;
+            border: none;
+            border-radius: 50px;
+            font-size: 22px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'KaiTi', 'STKaiti', '楷体', serif;
+            letter-spacing: 4px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .restart-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4);
+            background: linear-gradient(135deg, #a1887f 0%, #8d6e63 100%);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .game-title {
+                font-size: 36px;
+                letter-spacing: 5px;
+            }
+
+            .scene-image-wrapper {
+                height: 300px;
+            }
+
+            .scene-content {
+                padding: 25px;
+            }
+
+            .scene-text {
+                font-size: 18px;
+            }
+
+            .option-button {
+                font-size: 17px;
+                padding: 15px 20px;
+            }
+
+            .score-display {
+                position: static;
+                margin: 20px auto;
+                width: fit-content;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1 class="game-title">背影</h1>
+            <p class="game-subtitle">朱自清 · 交互式文学课件</p>
+        </div>
+
+        <div class="score-display">得分：<span id="score">0</span> / 7</div>
+
+        <div id="gameContent" class="scene-container">
+            <!-- 场景内容将由JavaScript动态生成 -->
+        </div>
+    </div>
+
+    <script>
+        const gameData = [
+            {
+                id: 1,
+                title: "家中变故",
+                image: "pic/seedream_20251202_180920.png",
+                text: `那年冬天，祖母去世了，父亲的差使也交卸了，正是祸不单行的日子。我从北京到徐州，打算跟着父亲奔丧回家。到徐州见着父亲，看见满院狼藉的东西，又想起祖母，不禁簌簌地流下眼泪。父亲说："事已如此，不必难过，好在天无绝人之路！"`,
+                options: [
+                    { text: "A. 面对家中变故，我决定听从父亲安排，先回北京上学", correct: true },
+                    { text: "B. 立即辞掉学业，留在家中处理丧事和家务", correct: false },
+                    { text: "C. 主动提出陪父亲去南京找工作，延迟返校时间", correct: false }
+                ],
+                feedback: {
+                    correct: `正确！原文写道："这些日子，家中光景很是惨淡...我从北京到徐州，打算跟着父亲奔丧回家...事已办完，父亲要到南京谋事，我也要回北京念书。" 面对家庭变故，我仍以学业为重，这也是父亲的期望。`,
+                    incorrect: `不符合原文。虽然家中遭遇变故，但父亲并不希望我因此耽误学业。原文明确提到"我也要回北京念书"，说明继续求学是家人的共同决定。父亲独自"到南京谋事"，我则"回北京念书"，父子各奔前程。`
+                }
+            },
+            {
+                id: 2,
+                title: "南京相见",
+                image: "pic/seedream_20251202_180936.png",
+                text: `回家变卖典质，父亲还了亏空；又借钱办了丧事。这些日子，家中光景很是惨淡，一半为了丧事，一半为了父亲赋闲。丧事完毕，父亲要到南京谋事，我也要回北京念书，我们便同行。到南京时，有朋友约去游逛，勾留了一日；第二日上午便须渡江到浦口，下午上车北去。父亲因为事忙，本已说定不送我...`,
+                options: [
+                    { text: "A. 父亲工作繁忙，让仆人送我上车就够了", correct: false },
+                    { text: "B. 虽然父亲说定不送，但最后还是不放心，决定亲自送我", correct: true },
+                    { text: "C. 父亲因为要赶着去找工作，只送到车站外就匆忙离开", correct: false }
+                ],
+                feedback: {
+                    correct: `正确！原文写道："我两三回劝他不必去；他只说，'不要紧，他们去不好！'" 尽管之前说定不送，父亲最终还是不放心，坚持要亲自送我上车。这个转变体现了父亲对儿子的深切关爱。`,
+                    incorrect: `不符合原文。虽然父亲原本"说定不送我"，但最终还是改变主意。原文写道："他再三嘱咐茶房，甚是仔细。但他终于不放心，怕茶房不妥帖；颇踌躇了一会。" 这体现了父爱的细腻。父亲不仅送到车站，还亲自安排座位、行李，甚至翻越月台为我买橘子。`
+                }
+            },
+            {
+                id: 3,
+                title: "车站送别",
+                image: "pic/seedream_20251202_180956.png",
+                text: `到了车站，我买票，他忙着照看行李。行李太多了，得向脚夫行些小费才可过去。他便又忙着和他们讲价钱。我那时真是聪明过分，总觉他说话不大漂亮，非自己插嘴不可，但他终于讲定了价钱；就送我上车。`,
+                options: [
+                    { text: "A. 父亲让我自己进站，他在站外等候", correct: false },
+                    { text: "B. 父子一起轻松闲聊，等待开车时间", correct: false },
+                    { text: "C. 父亲忙着和脚夫讲价钱，照看行李", correct: true }
+                ],
+                feedback: {
+                    correct: `正确！原文写道："到了车站，我买票，他忙着照看行李。行李太多了，得向脚夫行些小费才可过去。他便又忙着和他们讲价钱。" 父亲事必躬亲，体现深沉的父爱。`,
+                    incorrect: `不符合原文。父亲不仅进站，还亲自"忙着照看行李"、"和脚夫讲价钱"，事必躬亲，体现父爱的细致。此时父亲"忙着照看行李"，并非轻松闲聊的氛围，而是父亲尽心照料的场景。`
+                }
+            },
+            {
+                id: 4,
+                title: "叮嘱茶房",
+                image: "pic/seedream_20251202_181012.png",
+                text: `他给我拣定了靠车门的一张椅子；我将他给我做的紫毛大衣铺好座位。他嘱我路上小心，夜里要警醒些，不要受凉。又嘱托茶房好好照应我。我心里暗笑他的迂；他们只认得钱，托他们只是白托！而且我这样大年纪的人，难道还不能料理自己么？唉，我现在想想，那时真是太聪明了！`,
+                options: [
+                    { text: "A. 父亲简单交代几句就离开了，相信茶房会照顾好我", correct: false },
+                    { text: "B. 父亲反复叮嘱茶房要照顾好我，但最后还是不放心", correct: true },
+                    { text: "C. 我主动表示自己能照顾好自己，不需要父亲操心", correct: false }
+                ],
+                feedback: {
+                    correct: `正确！原文写道："他再三嘱咐茶房，甚是仔细。但他终于不放心，怕茶房不妥帖；颇踌躇了一会。" 这体现了父亲对儿子无微不至的关怀，即使反复叮嘱，仍然放心不下。`,
+                    incorrect: `不符合原文。父亲不仅"再三嘱咐茶房，甚是仔细"，而且"终于不放心，怕茶房不妥帖"，并没有简单交代就离开。文中我虽然"那时真是聪明过分，总觉他说话不大漂亮"，但并没有主动拒绝父亲的关心，而是后来才感到懊悔。`
+                }
+            },
+            {
+                id: 5,
+                title: "买橘子的背影",
+                image: "pic/seedream_20251202_181038.png",
+                text: `我说道："爸爸，你走吧。"他望车外看了看说："我买几个橘子去。你就在此地，不要走动。"我看那边月台的栅栏外有几个卖东西的等着顾客。走到那边月台，须穿过铁道，须跳下去又爬上去。父亲是一个胖子，走过去自然要费事些。我本来要去的，他不肯，只好让他去。`,
+                options: [
+                    { text: "A. 父亲让站台上的小贩送橘子过来", correct: false },
+                    { text: "B. 我主动提出下车去买橘子，不让父亲辛苦", correct: false },
+                    { text: "C. 父亲坚持自己去，艰难地爬过月台去买橘子", correct: true }
+                ],
+                feedback: {
+                    correct: `正确！这是全文最核心的场景。原文详细描写："我看见他戴着黑布小帽，穿着黑布大马褂，深青布棉袍，蹒跚地走到铁道边，慢慢探身下去...他用两手攀着上面，两脚再向上缩；他肥胖的身子向左微倾，显出努力的样子。" 父亲的背影深深打动了我，这一幕成为永恒的记忆。`,
+                    incorrect: `不符合原文。父亲坚持"我买几个橘子去。你就在此地，不要走动"，自己亲自翻越月台去买橘子。文中我说"我本来要去的，他不肯，只好让他去"，是父亲坚持自己去，而非让小贩送来或我主动提出。`
+                }
+            },
+            {
+                id: 6,
+                title: "父子告别",
+                image: "pic/seedream_20251202_181501.png",
+                text: `等他的背影混入来来往往的人里，再找不着了，我便进来坐下，我的眼泪又来了。过了一会，他抱着朱红的橘子望回走。过铁道时，他先将橘子散放在地上，自己慢慢爬下，再抱起橘子走。到这边时，我赶紧去搀他。他和我走到车上，将橘子一股脑儿放在我的皮大衣上。`,
+                options: [
+                    { text: "A. 父亲回到车上后就立即离开，没有多说什么", correct: false },
+                    { text: "B. 父亲将橘子放好，嘱咐我路上小心，然后慢慢走出去", correct: true },
+                    { text: "C. 父子相拥告别，我流着泪目送父亲离开", correct: false }
+                ],
+                feedback: {
+                    correct: `正确！原文写道："他将橘子一股脑儿放在我的皮大衣上。于是扑扑衣上的泥土，心里很轻松似的。过一会说：'我走了，到那边来信！'我望着他走出去。" 父亲完成心愿后，"心里很轻松似的"，然后才离去。`,
+                    incorrect: `不符合原文。父亲回来后还说了话："我走了，到那边来信！"并嘱咐我路上小心，并非立即离开。文中并没有相拥告别的场景，而是父亲"慢慢走出去"，我则"等他的背影混入来来往往的人里，再找不着了"，氛围是克制而深沉的。`
+                }
+            },
+            {
+                id: 7,
+                title: "来信惦念",
+                image: "pic/seedream_20251202_181516.png",
+                text: `近几年来，父亲和我都是东奔西走，家中光景是一日不如一日。他少年出外谋生，独立支持，做了许多大事。哪知老境却如此颓唐！他触目伤怀，自然情不能自已。情郁于中，自然要发之于外；家庭琐屑便往往触他之怒。他待我渐渐不同往日。但最近两年的不见，他终于忘却我的不好，只是惦记着我，惦记着我的儿子。我北来后，他写了一信给我...`,
+                options: [
+                    { text: "A. 信中父亲描述在南京找到好工作，让我放心", correct: false },
+                    { text: "B. 父亲在信中询问我的学业情况和生活近况", correct: false },
+                    { text: "C. 信中父亲提到身体不好，'大去之期不远'，让我泪流", correct: true }
+                ],
+                feedback: {
+                    correct: `正确！原文结尾写道："我北来后，他写了一信给我，信中说道：'我身体平安，惟膀子疼痛厉害...大约大去之期不远矣。'我读到此处，在晶莹的泪光中，又看见那肥胖的、青布棉袍黑布马褂的背影。" 父亲来信提到身体状况，勾起我对父亲背影的回忆，情感真挚动人。`,
+                    incorrect: `不符合原文。信中父亲提到的是"我身体平安，惟膀子疼痛厉害...大约大去之期不远矣"，而非找到好工作或询问学业。原文特别强调的是父亲身体状况和我的情感反应："我读到此处，在晶莹的泪光中，又看见那肥胖的、青布棉袍黑布马褂的背影。"`
+                }
+            }
+        ];
+
+        let currentScene = 0;
+        let score = 0;
+        let answered = false;
+
+        function loadScene(sceneIndex) {
+            answered = false;
+            const scene = gameData[sceneIndex];
+            const gameContent = document.getElementById('gameContent');
+
+            gameContent.innerHTML = `
+                <div class="scene-image-wrapper">
+                    <img src="${scene.image}" alt="${scene.title}" class="scene-image">
+                    <div class="scene-number">第 ${scene.id} 幕</div>
+                </div>
+
+                <div class="scene-content">
+                    <div class="scene-text">${scene.text}</div>
+
+                    <div class="options-container">
+                        ${scene.options.map((option, index) => `
+                            <button class="option-button" onclick="selectOption(${index})" id="option-${index}">
+                                ${option.text}
+                            </button>
+                        `).join('')}
+                    </div>
+
+                    <div id="feedback" class="hidden"></div>
+                </div>
+            `;
+        }
+
+        function selectOption(optionIndex) {
+            if (answered) return;
+
+            answered = true;
+            const scene = gameData[currentScene];
+            const selectedOption = scene.options[optionIndex];
+            const isCorrect = selectedOption.correct;
+
+            // 更新分数
+            if (isCorrect) {
+                score++;
+                document.getElementById('score').textContent = score;
+            }
+
+            // 标记选项
+            document.getElementById(`option-${optionIndex}`).classList.add(isCorrect ? 'correct' : 'incorrect');
+
+            // 禁用所有选项
+            scene.options.forEach((_, index) => {
+                const btn = document.getElementById(`option-${index}`);
+                btn.style.pointerEvents = 'none';
+            });
+
+            // 显示反馈
+            const feedbackDiv = document.getElementById('feedback');
+            feedbackDiv.className = `feedback-container ${isCorrect ? 'correct' : 'incorrect'}`;
+            feedbackDiv.innerHTML = `
+                ${isCorrect ? scene.feedback.correct : scene.feedback.incorrect}
+                ${currentScene < gameData.length - 1
+                    ? '<button class="next-button" onclick="nextScene()">下一场景</button>'
+                    : '<button class="next-button" onclick="endGame()">查看结果</button>'}
+            `;
+            feedbackDiv.classList.remove('hidden');
+        }
+
+        function nextScene() {
+            currentScene++;
+            if (currentScene < gameData.length) {
+                loadScene(currentScene);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        function endGame() {
+            const gameContent = document.getElementById('gameContent');
+            const percentage = Math.round((score / gameData.length) * 100);
+            let message = '';
+
+            if (percentage === 100) {
+                message = '完美！您完全理解了朱自清先生笔下的父爱深情。父亲的背影，承载着最深沉的爱与牵挂，这份情感穿越时空，永远动人。';
+            } else if (percentage >= 80) {
+                message = '优秀！您很好地把握了《背影》的情感脉络。父亲在月台上艰难攀爬的背影，是全文的点睛之笔，也是中国式父爱最质朴的表达。';
+            } else if (percentage >= 60) {
+                message = '良好！您理解了故事的主要内容。建议再次品读原文，细细体会父亲每一个细微动作背后的深情，以及"我"从不解到理解的心路历程。';
+            } else {
+                message = '需要加强。《背影》是一篇情感真挚的散文，建议仔细阅读原文，体会作者如何通过细节描写刻画父爱的伟大。父亲买橘子的背影，是永恒的经典。';
+            }
+
+            gameContent.innerHTML = `
+                <div class="game-end">
+                    <h2>游戏结束</h2>
+                    <div class="final-score">最终得分：${score} / ${gameData.length} （${percentage}%）</div>
+                    <div class="game-end-message">${message}</div>
+                    <button class="restart-button" onclick="restartGame()">重新开始</button>
+                </div>
+            `;
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function restartGame() {
+            currentScene = 0;
+            score = 0;
+            document.getElementById('score').textContent = score;
+            loadScene(0);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // 初始化游戏
+        loadScene(0);
+    </script>
+</body>
+</html>
